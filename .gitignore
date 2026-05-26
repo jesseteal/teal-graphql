@@ -1,0 +1,14 @@
+node_modules/
+tsconfig.tsbuildinfo
+.env
+.key
+# misc
+.DS_Store
+.vscode
+/dist
+example/dist
+.pnpm-store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vscode

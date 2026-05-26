@@ -1,2 +1,2 @@
-export * from './hooks';
-export * from './GraphqlProvider';
+export * from './hooks.js';
+export * from './GraphqlProvider.js';

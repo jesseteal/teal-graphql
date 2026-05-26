@@ -23,61 +23,38 @@
 
 import React, {
   createContext,
-  useReducer,
   useEffect,
-  useCallback,
+  useMemo,
   useRef,
 } from 'react';
-import {
-  ApolloClient,
-  InMemoryCache,
-  ApolloProvider,
-  from,
-} from '@apollo/client';
-import { configure as configSetup, getSchema, setSchema } from './hooks';
+import * as ApolloClientModule from '@apollo/client';
+import type { ApolloClient as ApolloClientType } from '@apollo/client';
+import { configure as configSetup, setSchema } from './hooks.js';
 
-export type Config = {
-  children: React.ReactNode;
+const ApolloClientPackage =
+  (ApolloClientModule as any).default || ApolloClientModule;
+const { ApolloClient, InMemoryCache, ApolloProvider } = ApolloClientPackage;
+
+export type GraphqlConfig = {
   graphql_path?: string;
   schema?: Record<string, string>;
   token?: string;
+  updateByField?: string;
+  updateByValue?: string;
 };
 
 // Store Apollo client and config in a context
 const Context = createContext<{
-  client: ApolloClient<any>;
-  config: Config;
+  client: ApolloClientType<any>;
+  config: GraphqlConfig;
 }>({
   client: null as any,
-  config: null as any,
+  config: {},
 });
 
-/**
- * Initial state for the provider reducer
- */
-const initialState = {
-  client: null as any,
-  config: null as any,
-};
-
-/**
- * Reducer for managing provider state
- */
-function reducer(state: typeof initialState, action: any): typeof initialState {
-  switch (action.type) {
-    case 'SET_CLIENT': {
-      return { ...state, client: action.payload };
-    }
-    case 'SET_CONFIG': {
-      return { ...state, config: action.payload };
-    }
-    default:
-      return state;
-  }
-}
-
-interface GraphqlProviderProps extends Config {
-  children?: React.ReactNode;
+export interface GraphqlProviderProps extends GraphqlConfig {
+  children: React.ReactNode;
+  config?: GraphqlConfig;
 }
 
 /**
@@ -97,8 +74,23 @@ interface GraphqlProviderProps extends Config {
 export const GraphqlProvider = ({
   children,
   config,
+  graphql_path,
+  schema,
+  token,
+  updateByField,
+  updateByValue,
 }: GraphqlProviderProps) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const resolvedConfig = useMemo(
+    () => ({
+      graphql_path,
+      schema,
+      token,
+      updateByField,
+      updateByValue,
+      ...config,
+    }),
+    [config, graphql_path, schema, token, updateByField, updateByValue],
+  );
   const cache = useRef(new InMemoryCache({
     // Optimistic updates and cache policies
     typePolicies: {
@@ -106,20 +98,18 @@ export const GraphqlProvider = ({
         fields: {
           // Prevent stale data issues
           user: {
-            merge: (prev, { data }: { data: any }) => ({ ...prev, ...data }),
+            merge: (prev: any, { data }: { data: any }) => ({
+              ...prev,
+              ...data,
+            }),
           },
         },
       },
     },
   }));
-  const clientRef = useRef<any>(null);
 
-  // Initialize Apollo Client
-  const setupClient = useCallback((): ApolloClient<any> => {
-    const { graphql_path = '/graphql', schema, token } = config;
-
-    // Get schema for Apollo Client
-    const apolloSchema = schema || {};
+  const client = useMemo((): ApolloClientType<any> => {
+    const { graphql_path = '/graphql', token } = resolvedConfig;
 
     // Build headers
     const headers: Record<string, string> = {};
@@ -128,53 +118,40 @@ export const GraphqlProvider = ({
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    return ApolloClient.create({
-      cache,
-      connectToDevTools: process.env.NODE_ENV !== 'production',
+    return new ApolloClient({
+      cache: cache.current,
       ssrMode: false,
       defaultOptions: {
         query: {
           fetchPolicy: 'cache-first',
-          nextFetchPolicy: 'cache-first',
         },
-        mutation: {
+        mutate: {
           fetchPolicy: 'network-only',
         },
       },
       uri: graphql_path,
       headers,
     });
-  }, [config]);
+  }, [resolvedConfig]);
 
   // Setup on mount
   useEffect(() => {
-    const client = setupClient();
-    clientRef.current = client;
+    const { schema } = resolvedConfig;
 
     // Apply configuration
     if (schema) {
       setSchema(schema);
       configSetup({
         schema,
-        updateByField: config.updateByField,
-        updateByValue: config.updateByValue,
+        updateByField: resolvedConfig.updateByField,
+        updateByValue: resolvedConfig.updateByValue,
       });
     }
-
-    dispatch({
-      type: 'SET_CLIENT',
-      payload: client,
-    });
-
-    return () => {
-      // Cleanup (if needed)
-      // client.stop();
-    };
-  }, []);
+  }, [resolvedConfig]);
 
   return (
-    <Context.Provider value={{ client: clientRef.current, config }}>
-      <ApolloProvider client={clientRef.current}>{children}</ApolloProvider>
+    <Context.Provider value={{ client, config: resolvedConfig }}>
+      <ApolloProvider client={client}>{children}</ApolloProvider>
     </Context.Provider>
   );
 };

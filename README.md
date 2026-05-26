@@ -14,7 +14,7 @@ A reusable, production-ready library of Apollo Client hooks and utilities for Re
 ## Installation
 
 ```bash
-npm install teal-graphql-hooks @apollo/client react
+npm install teal-graphql @apollo/client react
 ```
 
 ## Quick Start
@@ -23,7 +23,7 @@ npm install teal-graphql-hooks @apollo/client react
 
 ```tsx
 import React from 'react';
-import { GraphqlProvider } from 'teal-graphql-hooks';
+import { GraphqlProvider } from 'teal-graphql';
 
 function App() {
   return (
@@ -42,7 +42,7 @@ function App() {
 ### 2. Use Hooks in Components
 
 ```tsx
-import { useQuery, useMutation, useSave, useDelete } from 'teal-graphql-hooks';
+import { useQuery, useMutation, useSave, useDelete } from 'teal-graphql';
 
 // Simple query
 const { data, loading, error } = useQuery(`
@@ -56,8 +56,8 @@ const { data, loading, error } = useQuery(`
 `);
 
 // CRUD operations
-const [saveUser, deleteUser] = useSave('users');
-const [savePost, deletePost] = useSave('posts');
+const saveUser = useSave('users');
+const deleteUser = useDelete('users');
 
 // Save a user
 await saveUser({ input: { name: 'John', email: 'john@example.com' } });
@@ -69,7 +69,7 @@ await deleteUser({ input: { id: '123' } });
 ### 3. Configure with Schema
 
 ```tsx
-import { configure } from 'teal-graphql-hooks';
+import { configure } from 'teal-graphql';
 
 // Optional: Configure audit fields
 configure({
@@ -171,7 +171,7 @@ const [save, delete] = useSaveDelete('users');
 Configure the library with schema and audit settings.
 
 ```tsx
-import { configure } from 'teal-graphql-hooks';
+import { configure } from 'teal-graphql';
 
 configure({
   schema: {
@@ -200,7 +200,7 @@ Wrap a mutation to automatically set audit fields.
 #### Cache Management
 
 ```tsx
-import { useGraphPurge } from 'teal-graphql-hooks';
+import { useGraphPurge } from 'teal-graphql';
 
 const purge = useGraphPurge();
 
@@ -211,7 +211,7 @@ purge('user_123');
 #### Direct Client Access
 
 ```tsx
-import { useClient } from 'teal-graphql-hooks';
+import { useClient } from 'teal-graphql';
 
 const client = useClient();
 
@@ -224,7 +224,7 @@ client.cache.readQuery({
 #### Non-Hook Queries
 
 ```tsx
-import { query } from 'teal-graphql-hooks';
+import { query } from 'teal-graphql';
 
 const result = await query(client, `
   query {

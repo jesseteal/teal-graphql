@@ -19,14 +19,18 @@
  * ```
  */
 
-import {
+import * as ApolloClientModule from '@apollo/client';
+import type { ApolloError } from '@apollo/client';
+
+const ApolloClientPackage =
+  (ApolloClientModule as any).default || ApolloClientModule;
+const {
   gql,
-  useQuery as useApolloQuery,
-  useMutation as useApolloMutation,
+  useQuery: useApolloQuery,
+  useMutation: useApolloMutation,
   useLazyQuery,
   useApolloClient,
-  ApolloError,
-} from '@apollo/client';
+} = ApolloClientPackage;
 
 // Configuration state
 export let schema: Record<string, string> = {};
@@ -148,13 +152,13 @@ export const useQuery = (
     skip?: boolean;
     lazy?: boolean;
   } = {},
-): [any, { data: any; loading: boolean; error?: ApolloError; refetch: (v?: any) => void }] => {
+): any => {
   const isLazy = config.lazy || false;
   const { networkOnly = false, skip = false, variables } = config;
 
   const hook = isLazy ? useLazyQuery : useApolloQuery;
 
-  const result = hook<Record<string, any>>(
+  return hook(
     gql`
       ${query}
     `,
@@ -164,13 +168,6 @@ export const useQuery = (
       variables,
     },
   );
-
-  // Handle errors gracefully
-  if (result.error) {
-    console.error('GraphQL Error:', result.error);
-  }
-
-  return result;
 };
 
 /**
@@ -193,7 +190,7 @@ export const useMutation = (
       ${query}
     `,
     {
-      variables: config.variables || null,
+      variables: config.variables,
     },
   );
 
@@ -262,14 +259,14 @@ export const useSave = (
       return createMutation({
         variables: { input: values.input },
       })
-        .then((result) => result.data)
+        .then((result: any) => result.data)
         .then(cacheBuster || ((r: any) => r));
     }
 
     return updateMutation({
       variables: { input: values.input },
     })
-      .then((result) => result.data[`update${table}`])
+      .then((result: any) => result.data[`update${table}`])
       .then(cacheBuster || ((r: any) => r));
   };
 };
@@ -337,7 +334,7 @@ export const useDelete = (
 export const useSaveDelete = (
   table: string,
   clearCache?: string | string[] | null,
-): [(typeof useSave), (typeof useDelete)] => {
+): [ReturnType<typeof useSave>, ReturnType<typeof useDelete>] => {
   const save = useSave(table, clearCache);
   const deleteFn = useDelete(table, clearCache);
   return [save, deleteFn];
@@ -364,7 +361,7 @@ export const useClient = (): any => useApolloClient();
 export const query = (
   client: any,
   query: string,
-  config: { networkOnly?: boolean } = {},
+  config: { networkOnly?: boolean; variables?: Record<string, any> } = {},
 ): Promise<any> => {
   const { networkOnly = false } = config;
   return client.query({
