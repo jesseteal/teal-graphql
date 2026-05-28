@@ -1,8 +1,10 @@
 {
   "name": "@jesseteal/teal-graphql",
-  "version": "0.0.1",
-  "description": "A reusable, library of Apollo Client hooks and utilities for React applications",
+  "version": "0.0.2",
+  "description": "Reusable Apollo Client hooks and utilities for React applications",
+  "author": "Jesse Teal",
   "type": "module",
+  "packageManager": "pnpm@11.2.2",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,12 +16,29 @@
   },
   "files": [
     "dist",
+    "LICENSE",
     "README.md"
   ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jesseteal/teal-graphql.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jesseteal/teal-graphql/issues"
+  },
+  "homepage": "https://github.com/jesseteal/teal-graphql#readme",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "format": "prettier --write .",
     "prepack": "npm run build",
+    "prepublishOnly": "pnpm test && pnpm typecheck && pnpm build && pnpm smoke",
     "smoke": "node -e \"import('./dist/index.js').then((m) => console.log(Object.keys(m).sort().join('\\n')))\"",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -28,11 +47,11 @@
   "keywords": [
     "graphql",
     "apollo",
+    "apollo-client",
     "hooks",
     "react",
     "typescript"
   ],
-  "author": "",
   "license": "MIT",
   "peerDependencies": {
     "@apollo/client": "^3.9.0",

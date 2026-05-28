@@ -3,7 +3,7 @@
  *
  * usage: `import { GraphqlProvider, useGraphqlQuery } from "@jesseteal/teal-graphql"`.
  */
-export { evictCacheFields } from "./cache.js";
+export { evictCacheFields, normalizeCacheEvictTargets } from "./cache.js";
 export { createGraphqlClientConfig, useGraphqlConfig } from "./config.js";
 export {
   assertGraphqlIdentifier,

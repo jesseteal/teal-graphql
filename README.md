@@ -7,10 +7,12 @@ eviction utilities, and pure helpers for generated GraphQL operations.
 ## Installation
 
 ```bash
-npm install teal-graphql @apollo/client graphql react
+npm install @jesseteal/teal-graphql @apollo/client graphql react
 ```
 
 ## Provider
+
+Setup
 
 ```tsx
 import { GraphqlProvider } from "@jesseteal/teal-graphql";
@@ -36,6 +38,26 @@ export function App() {
 }
 ```
 
+## CRUD Helpers
+
+```tsx
+import { useCrudActions } from "@jesseteal/teal-graphql";
+
+const { save, remove } = useCrudActions({
+  resource: "User",
+  evict: ["users", "user"],
+});
+
+await save({ input: { id: "1", name: "Ada" } });
+await save({ input: { name: "Grace" } }, { mode: "create" });
+await remove({ input: { id: "1" } });
+```
+
+`useCrudActions` builds `create<Resource>`, `update<Resource>`, and
+`delete<Resource>` mutations. The resource name must be a valid GraphQL
+identifier. The update mutation uses `selection` from the hook options first,
+then `config.schema[resource]` from the provider.
+
 ## Queries
 
 ```tsx
@@ -60,6 +82,8 @@ action.
 
 ## Mutations
 
+Custom Mutations
+
 ```tsx
 import { useGraphqlMutation } from "@jesseteal/teal-graphql";
 
@@ -83,26 +107,6 @@ const [saveUser, result] = useGraphqlMutation<SaveUserData, SaveUserVariables>(`
 await saveUser({ variables: { input: { name: "Ada" } } });
 ```
 
-## CRUD Helpers
-
-```tsx
-import { useCrudActions } from "@jesseteal/teal-graphql";
-
-const { save, remove } = useCrudActions({
-  resource: "User",
-  evict: ["users", "user"],
-});
-
-await save({ input: { id: "1", name: "Ada" } });
-await save({ input: { name: "Grace" } }, { mode: "create" });
-await remove({ input: { id: "1" } });
-```
-
-`useCrudActions` builds `create<Resource>`, `update<Resource>`, and
-`delete<Resource>` mutations. The resource name must be a valid GraphQL
-identifier. The update mutation uses `selection` from the hook options first,
-then `config.schema[resource]` from the provider.
-
 ## Cache Utilities
 
 ```tsx
@@ -118,7 +122,10 @@ For non-hook code, use `evictCacheFields(cache, target)`.
 ## Pure Helpers
 
 ```tsx
-import { createGraphqlDocument, sanitizeMutationInput } from "@jesseteal/teal-graphql";
+import {
+  createGraphqlDocument,
+  sanitizeMutationInput,
+} from "@jesseteal/teal-graphql";
 
 const input = sanitizeMutationInput({
   __typename: "User",
@@ -129,19 +136,6 @@ const input = sanitizeMutationInput({
 `sanitizeMutationInput` removes `__typename`, drops `undefined`, converts empty
 strings to `null`, recurses through arrays and plain objects, and applies an
 optional audit field.
-
-## Breaking Changes
-
-This package surface was intentionally reshaped for readability and type
-safety.
-
-- `graphql_path` is now `uri`.
-- `configure`, `getSchema`, `setSchema`, `wrapMutation`, `useSave`,
-  `useDelete`, `useSaveDelete`, `useGraphPurge`, `useQuery`, `useMutation`,
-  and `query` were replaced by the new provider, hook, and helper APIs.
-- CRUD helpers now return `{ save, remove }`.
-- Query and mutation hooks are named `useGraphqlQuery`,
-  `useLazyGraphqlQuery`, and `useGraphqlMutation`.
 
 ## Validation
 
