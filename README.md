@@ -1,241 +1,167 @@
-# Teal GraphQL Hooks
+# Teal GraphQL
 
-A reusable, production-ready library of Apollo Client hooks and utilities for React applications.
-
-## Features
-
-- **Type-safe hooks** - Full TypeScript support with JSDoc documentation
-- **CRUD operations** - `useSave`, `useDelete` hooks for easy data management
-- **Flexible queries** - Generic `useQuery` and `useMutation` hooks
-- **Cache management** - Built-in cache eviction helpers
-- **Audit fields** - Automatic field injection for auditing
-- **React 18+** - Compatible with modern React versions
+A small TypeScript utility package for using Apollo Client in React apps. It
+provides a provider, typed query and mutation hooks, CRUD helpers, cache
+eviction utilities, and pure helpers for generated GraphQL operations.
 
 ## Installation
 
 ```bash
-npm install teal-graphql @apollo/client react
+npm install teal-graphql @apollo/client graphql react
 ```
 
-## Quick Start
-
-### 1. Setup the Provider
+## Provider
 
 ```tsx
-import React from 'react';
-import { GraphqlProvider } from 'teal-graphql';
+import { GraphqlProvider } from "@jesseteal/teal-graphql";
 
-function App() {
+const graphqlConfig = {
+  uri: "/graphql",
+  token: "optional-auth-token",
+  schema: {
+    User: "id name email updatedBy",
+  },
+  audit: {
+    field: "updatedBy",
+    value: "current-user-id",
+  },
+};
+
+export function App() {
   return (
-    <GraphqlProvider
-      children={<YourApp />}
-      config={{
-        graphql_path: '/graphql',
-        schema: { user: 'user { id, name, email }' },
-        token: 'your-auth-token' // optional
-      }}
-    />
+    <GraphqlProvider config={graphqlConfig}>
+      <YourApp />
+    </GraphqlProvider>
   );
 }
 ```
 
-### 2. Use Hooks in Components
+## Queries
 
 ```tsx
-import { useQuery, useMutation, useSave, useDelete } from 'teal-graphql';
+import { useGraphqlQuery } from "@jesseteal/teal-graphql";
 
-// Simple query
-const { data, loading, error } = useQuery(`
-  query GetUser {
-    user {
-      id
-      name
-      email
-    }
-  }
-`);
+type UsersData = {
+  users: Array<{ id: string; name: string }>;
+};
 
-// CRUD operations
-const saveUser = useSave('users');
-const deleteUser = useDelete('users');
-
-// Save a user
-await saveUser({ input: { name: 'John', email: 'john@example.com' } });
-
-// Delete a user
-await deleteUser({ input: { id: '123' } });
-```
-
-### 3. Configure with Schema
-
-```tsx
-import { configure } from 'teal-graphql';
-
-// Optional: Configure audit fields
-configure({
-  schema: {
-    user: 'user { id, name, email, updated_by }',
-    post: 'post { id, title, body, updated_by }'
-  },
-  updateByField: 'updated_by',
-  updateByValue: 'current_user_id'
-});
-```
-
-## API Reference
-
-### Query Hooks
-
-#### `useQuery(query, config)`
-
-Generic query hook for fetching data.
-
-```tsx
-const [result] = useQuery(`
-  query {
+const { data, loading, error, refetch } = useGraphqlQuery<UsersData>(`
+  query Users {
     users {
       id
       name
-      email
     }
   }
-`, {
-  variables: { limit: 10 },
-  skip: false,
-  lazy: false
-});
-
-// result.data - Array of users
-// result.loading - Boolean
-// result.error - Error if any
-// result.refetch - Refetch function
+`);
 ```
 
-#### `useMutation(query, config)`
+Use `useLazyGraphqlQuery` when a query should run only after an explicit user
+action.
 
-Generic mutation hook for mutations.
+## Mutations
 
 ```tsx
-const [mutate] = useMutation(`
+import { useGraphqlMutation } from "@jesseteal/teal-graphql";
+
+type SaveUserData = {
+  saveUser: { id: string; name: string };
+};
+
+type SaveUserVariables = {
+  input: { name: string };
+};
+
+const [saveUser, result] = useGraphqlMutation<SaveUserData, SaveUserVariables>(`
   mutation SaveUser($input: UserInput!) {
     saveUser(input: $input) {
       id
       name
     }
   }
-`, {
-  variables: { input: { name: 'John' } }
+`);
+
+await saveUser({ variables: { input: { name: "Ada" } } });
+```
+
+## CRUD Helpers
+
+```tsx
+import { useCrudActions } from "@jesseteal/teal-graphql";
+
+const { save, remove } = useCrudActions({
+  resource: "User",
+  evict: ["users", "user"],
 });
 
-await mutate();
+await save({ input: { id: "1", name: "Ada" } });
+await save({ input: { name: "Grace" } }, { mode: "create" });
+await remove({ input: { id: "1" } });
 ```
 
-### CRUD Hooks
+`useCrudActions` builds `create<Resource>`, `update<Resource>`, and
+`delete<Resource>` mutations. The resource name must be a valid GraphQL
+identifier. The update mutation uses `selection` from the hook options first,
+then `config.schema[resource]` from the provider.
 
-#### `useSave(table, clearCache)`
-
-Returns a save function for a CRUD table.
+## Cache Utilities
 
 ```tsx
-const [saveUser] = useSave('users');
+import { useCacheEvictor } from "@jesseteal/teal-graphql";
 
-// Insert new record
-await saveUser({ input: { name: 'John', email: 'john@example.com' } });
+const evict = useCacheEvictor();
 
-// Update existing record
-await saveUser({ input: { id: '123', name: 'Jane' } });
+evict(["users", "user"]);
 ```
 
-#### `useDelete(table, clearCache)`
+For non-hook code, use `evictCacheFields(cache, target)`.
 
-Returns a delete function for a CRUD table.
-
-```tsx
-const deleteUser = useDelete('users');
-
-await deleteUser({ input: { id: '123' } });
-```
-
-#### `useSaveDelete(table, clearCache)`
-
-Returns both save and delete functions in a single hook.
+## Pure Helpers
 
 ```tsx
-const [save, delete] = useSaveDelete('users');
-```
+import { createGraphqlDocument, sanitizeMutationInput } from "@jesseteal/teal-graphql";
 
-### Configuration
-
-#### `configure(config)`
-
-Configure the library with schema and audit settings.
-
-```tsx
-import { configure } from 'teal-graphql';
-
-configure({
-  schema: {
-    user: 'user { id, name, email }',
-    post: 'post { id, title, body }'
-  },
-  updateByField: 'updated_by',
-  updateByValue: 'current_user_id'
+const input = sanitizeMutationInput({
+  __typename: "User",
+  name: "",
 });
 ```
 
-#### `getSchema()`
+`sanitizeMutationInput` removes `__typename`, drops `undefined`, converts empty
+strings to `null`, recurses through arrays and plain objects, and applies an
+optional audit field.
 
-Get the current schema configuration.
+## Breaking Changes
 
-#### `setSchema(schema)`
+This package surface was intentionally reshaped for readability and type
+safety.
 
-Set the schema directly.
+- `graphql_path` is now `uri`.
+- `configure`, `getSchema`, `setSchema`, `wrapMutation`, `useSave`,
+  `useDelete`, `useSaveDelete`, `useGraphPurge`, `useQuery`, `useMutation`,
+  and `query` were replaced by the new provider, hook, and helper APIs.
+- CRUD helpers now return `{ save, remove }`.
+- Query and mutation hooks are named `useGraphqlQuery`,
+  `useLazyGraphqlQuery`, and `useGraphqlMutation`.
 
-#### `wrapMutation(fn, table)`
+## Validation
 
-Wrap a mutation to automatically set audit fields.
-
-### Advanced Features
-
-#### Cache Management
-
-```tsx
-import { useGraphPurge } from 'teal-graphql';
-
-const purge = useGraphPurge();
-
-// Purge cache for a specific query
-purge('user_123');
+```bash
+pnpm test
+pnpm build
+pnpm smoke
+pnpm pack --dry-run
 ```
 
-#### Direct Client Access
+## Example Project
 
-```tsx
-import { useClient } from 'teal-graphql';
+A Vite React example lives in `example/`. It imports this package through
+`"@jesseteal/teal-graphql": "file:.."` and uses a local Vite middleware to serve an
+in-memory `/graphql` endpoint.
 
-const client = useClient();
-
-// Advanced cache operations
-client.cache.readQuery({
-  query: gql`{ users { id } }`
-});
-```
-
-#### Non-Hook Queries
-
-```tsx
-import { query } from 'teal-graphql';
-
-const result = await query(client, `
-  query {
-    users {
-      id
-      name
-    }
-  }
-`, {
-  networkOnly: true
-});
+```bash
+cd example
+pnpm install
+pnpm dev
 ```
 
 ## License

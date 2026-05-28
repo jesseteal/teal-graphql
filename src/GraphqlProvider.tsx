@@ -1,159 +1,51 @@
+import React, { useMemo } from "react";
+import { ApolloClient, ApolloProvider, InMemoryCache } from "./apollo.js";
+import type { ApolloClientType } from "./apollo.js";
+import { GraphqlConfigProvider } from "./config.js";
+import type { GraphqlClientConfig } from "./types.js";
+
 /**
- * GraphQL Provider Component
+ * Props for the root provider that owns Apollo Client setup.
  *
- * Sets up Apollo Client with the necessary configuration for the hooks.
- *
- * @example
- * ```tsx
- * import { GraphqlProvider } from 'teal-graphql';
- *
- * function App() {
- *   return (
- *     <GraphqlProvider
- *       children={<YourApp />}
- *       config={{
- *         graphql_path: '/graphql',
- *         schema: { user: 'user { id, name }' }
- *       }}
- *     />
- *   );
- * }
- * ```
+ * usage: `{ config: { uri: "/graphql" }, children: <App /> }`.
  */
-
-import React, {
-  createContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react';
-import * as ApolloClientModule from '@apollo/client';
-import type { ApolloClient as ApolloClientType } from '@apollo/client';
-import { configure as configSetup, setSchema } from './hooks.js';
-
-const ApolloClientPackage =
-  (ApolloClientModule as any).default || ApolloClientModule;
-const { ApolloClient, InMemoryCache, ApolloProvider } = ApolloClientPackage;
-
-export type GraphqlConfig = {
-  graphql_path?: string;
-  schema?: Record<string, string>;
-  token?: string;
-  updateByField?: string;
-  updateByValue?: string;
+export type GraphqlProviderProps = {
+  children: React.ReactNode;
+  config: GraphqlClientConfig;
 };
 
-// Store Apollo client and config in a context
-const Context = createContext<{
-  client: ApolloClientType<any>;
-  config: GraphqlConfig;
-}>({
-  client: null as any,
-  config: {},
-});
-
-export interface GraphqlProviderProps extends GraphqlConfig {
-  children: React.ReactNode;
-  config?: GraphqlConfig;
-}
-
 /**
- * GraphQL Provider component.
+ * Creates Apollo Client and exposes GraphQL package config to child hooks.
  *
- * @example
- * ```tsx
- * <GraphqlProvider
- *   children={<App />}
- *   config={{
- *     graphql_path: '/graphql',
- *     schema: { user: 'user { id, name }' }
- *   }}
- * />
- * ```
+ * usage: `<GraphqlProvider config={config}><App /></GraphqlProvider>`.
  */
-export const GraphqlProvider = ({
-  children,
-  config,
-  graphql_path,
-  schema,
-  token,
-  updateByField,
-  updateByValue,
-}: GraphqlProviderProps) => {
-  const resolvedConfig = useMemo(
-    () => ({
-      graphql_path,
-      schema,
-      token,
-      updateByField,
-      updateByValue,
-      ...config,
-    }),
-    [config, graphql_path, schema, token, updateByField, updateByValue],
-  );
-  const cache = useRef(new InMemoryCache({
-    // Optimistic updates and cache policies
-    typePolicies: {
-      Query: {
-        fields: {
-          // Prevent stale data issues
-          user: {
-            merge: (prev: any, { data }: { data: any }) => ({
-              ...prev,
-              ...data,
-            }),
-          },
-        },
-      },
-    },
-  }));
-
-  const client = useMemo((): ApolloClientType<any> => {
-    const { graphql_path = '/graphql', token } = resolvedConfig;
-
-    // Build headers
-    const headers: Record<string, string> = {};
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+export const GraphqlProvider = ({ children, config }: GraphqlProviderProps) => {
+  const cache = useMemo(() => new InMemoryCache(config.cache), [config.cache]);
+  const client = useMemo<ApolloClientType<unknown>>(() => {
+    const headers = {
+      ...config.headers,
+      ...(config.token ? { Authorization: `Bearer ${config.token}` } : {}),
+    };
 
     return new ApolloClient({
-      cache: cache.current,
-      ssrMode: false,
+      cache,
       defaultOptions: {
-        query: {
-          fetchPolicy: 'cache-first',
-        },
         mutate: {
-          fetchPolicy: 'network-only',
+          fetchPolicy: "network-only",
+        },
+        query: {
+          fetchPolicy: "cache-first",
         },
       },
-      uri: graphql_path,
       headers,
+      uri: config.uri,
     });
-  }, [resolvedConfig]);
-
-  // Setup on mount
-  useEffect(() => {
-    const { schema } = resolvedConfig;
-
-    // Apply configuration
-    if (schema) {
-      setSchema(schema);
-      configSetup({
-        schema,
-        updateByField: resolvedConfig.updateByField,
-        updateByValue: resolvedConfig.updateByValue,
-      });
-    }
-  }, [resolvedConfig]);
+  }, [cache, config.headers, config.token, config.uri]);
+  const contextValue = useMemo(() => ({ config }), [config]);
 
   return (
-    <Context.Provider value={{ client, config: resolvedConfig }}>
+    <GraphqlConfigProvider value={contextValue}>
       <ApolloProvider client={client}>{children}</ApolloProvider>
-    </Context.Provider>
+    </GraphqlConfigProvider>
   );
 };
-
-export default GraphqlProvider;
