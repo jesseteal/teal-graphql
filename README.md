@@ -48,9 +48,9 @@ const { save, remove } = useCrudActions({
   evict: ["users", "user"],
 });
 
-await save({ input: { id: "1", name: "Ada" } });
-await save({ input: { name: "Grace" } }, { mode: "create" });
-await remove({ input: { id: "1" } });
+await save({ id: "1", name: "Ada" });
+await save({ name: "Grace" }, { mode: "create" });
+await remove({ id: "1" });
 ```
 
 `useCrudActions` builds `create<Resource>`, `update<Resource>`, and
@@ -112,9 +112,9 @@ await saveUser({ variables: { input: { name: "Ada" } } });
 ```tsx
 import { useCacheEvictor } from "@jesseteal/teal-graphql";
 
-const evict = useCacheEvictor();
+const clearCache = useCacheEvictor();
 
-evict(["users", "user"]);
+clearCache(["users", "user"]);
 ```
 
 For non-hook code, use `evictCacheFields(cache, target)`.

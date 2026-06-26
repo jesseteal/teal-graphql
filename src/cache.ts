@@ -1,4 +1,4 @@
-import type { ApolloCache } from "./apollo.js";
+import { useApolloClient, type ApolloCache } from "./apollo.js";
 import type { CacheEvictTarget } from "./types.js";
 
 /**

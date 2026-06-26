@@ -24,6 +24,7 @@ export const {
   useLazyQuery,
   useMutation,
   useQuery,
+  HttpLink,
 } = apollo;
 
 /**

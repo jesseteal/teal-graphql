@@ -91,21 +91,3 @@ export type CrudResourceConfig = {
 export type SaveOptions = {
   mode?: "create" | "update";
 };
-
-/**
- * Payload accepted by CRUD save commands.
- *
- * usage: `{ input: { id: "1", name: "Ada" } }`.
- */
-export type SavePayload<TInput extends MutationInput> = {
-  input: TInput;
-};
-
-/**
- * Payload accepted by CRUD remove commands.
- *
- * usage: `{ input: { id: "1" } }`.
- */
-export type RemovePayload<TInput extends MutationInput> = {
-  input: TInput;
-};

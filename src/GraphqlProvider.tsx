@@ -1,5 +1,10 @@
 import React, { useMemo } from "react";
-import { ApolloClient, ApolloProvider, InMemoryCache } from "./apollo.js";
+import {
+  ApolloClient,
+  ApolloProvider,
+  HttpLink,
+  InMemoryCache,
+} from "./apollo.js";
 import type { ApolloClientType } from "./apollo.js";
 import { GraphqlConfigProvider } from "./config.js";
 import type { GraphqlClientConfig } from "./types.js";
@@ -21,6 +26,7 @@ export type GraphqlProviderProps = {
  */
 export const GraphqlProvider = ({ children, config }: GraphqlProviderProps) => {
   const cache = useMemo(() => new InMemoryCache(config.cache), [config.cache]);
+
   const client = useMemo<ApolloClientType<unknown>>(() => {
     const headers = {
       ...config.headers,
@@ -37,8 +43,7 @@ export const GraphqlProvider = ({ children, config }: GraphqlProviderProps) => {
           fetchPolicy: "cache-first",
         },
       },
-      headers,
-      uri: config.uri,
+      link: new HttpLink({ uri: config.uri, headers }),
     });
   }, [cache, config.headers, config.token, config.uri]);
   const contextValue = useMemo(() => ({ config }), [config]);

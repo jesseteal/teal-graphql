@@ -1,6 +1,6 @@
 {
   "name": "@jesseteal/teal-graphql",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Reusable Apollo Client hooks and utilities for React applications",
   "author": "Jesse Teal",
   "type": "module",
@@ -35,10 +35,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build --force",
     "format": "prettier --write .",
     "prepack": "npm run build",
-    "prepublishOnly": "pnpm test && pnpm typecheck && pnpm build && pnpm smoke",
+    "prepub": "pnpm test && pnpm typecheck && pnpm build && pnpm smoke",
     "smoke": "node -e \"import('./dist/index.js').then((m) => console.log(Object.keys(m).sort().join('\\n')))\"",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

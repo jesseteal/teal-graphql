@@ -4,6 +4,7 @@
  * usage: `import { GraphqlProvider, useGraphqlQuery } from "@jesseteal/teal-graphql"`.
  */
 export { evictCacheFields, normalizeCacheEvictTargets } from "./cache.js";
+export * from "./apollo.js";
 export { createGraphqlClientConfig, useGraphqlConfig } from "./config.js";
 export {
   assertGraphqlIdentifier,
@@ -31,7 +32,5 @@ export type {
   GraphqlSchema,
   GraphqlVariables,
   MutationInput,
-  RemovePayload,
   SaveOptions,
-  SavePayload,
 } from "./types.js";

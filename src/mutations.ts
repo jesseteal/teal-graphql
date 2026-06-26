@@ -11,9 +11,7 @@ import type {
   GraphqlSchema,
   GraphqlVariables,
   MutationInput,
-  RemovePayload,
   SaveOptions,
-  SavePayload,
 } from "./types.js";
 
 /**
@@ -72,10 +70,10 @@ export const useCrudActions = <
   const [deleteMutation] = useApolloMutation(documents.remove);
 
   const save = async (
-    payload: SavePayload<TInput>,
+    payload: MutationInput,
     options: SaveOptions = {},
   ): Promise<TResult> => {
-    const input = sanitizeMutationInput(payload.input, audit);
+    const input = sanitizeMutationInput(payload, audit);
     const mode = options.mode ?? (documents.update ? "update" : "create");
     const mutation = mode === "update" ? updateMutation : createMutation;
     const result = await mutation({ variables: { input } });
@@ -89,8 +87,8 @@ export const useCrudActions = <
     return result.data as TResult;
   };
 
-  const remove = async (payload: RemovePayload<TInput>): Promise<TResult> => {
-    const input = sanitizeMutationInput(payload.input);
+  const remove = async (payload: MutationInput): Promise<TResult> => {
+    const input = sanitizeMutationInput(payload);
     const result = await deleteMutation({ variables: { input } });
 
     evictCacheFields(client.cache, evict);
